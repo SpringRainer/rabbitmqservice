@@ -1,14 +1,43 @@
 package com.example;
 
-import com.example.consumer.rabbitmq_consumer;
-import com.example.producer.rabbitmq_producer;
+import com.example.cachemanager.CacheTest;
+import com.example.cipher.RsaDecoder;
+import com.example.configuration.RabbitmqConfiguration;
+import com.example.constant.MqConstant;
+import com.example.constant.RsaConstant;
+import com.example.consumer.MqConsumer;
+import com.example.exception.DecryptBeyondLengthException;
+import com.example.producer.MqProducer;
+import com.example.redis.OperationForExchangeRouteKey;
+import com.example.utils.Formater;
+import com.rabbitmq.client.Channel;
+import com.service.dao.CrudForConsumer;
+import com.service.dao.CrudForMessageQueue;
+import com.service.dao.QueryForStudent;
+import com.service.model.MessageTemp;
+import com.service.model.PaperInformation;
+import com.service.model.Student;
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
+import redis.clients.jedis.JedisPool;
 
-import java.io.IOException;
+import javax.crypto.*;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+import java.util.List;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -16,27 +45,336 @@ import java.util.concurrent.TimeoutException;
  * @version 2.0
  * @date 2022/4/17 17:50
  */
-@SpringBootTest(classes = main_demo_8080.class)
+@SpringBootTest(classes = RabbitmqMain.class)
 @RunWith(SpringRunner.class)
-
 public class rabbit_test {
-    @Autowired
-    private rabbitmq_producer rabbitmq_producer;
+    @Test
+    public void test() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
+
+//        KeyPair keyPair = new KeyPair(new PublicKey() {
+//            @Override
+//            public String getAlgorithm() {
+//                return "RSA";
+//            }
+//
+//            @Override
+//            public String getFormat() {
+//                return "X.509";
+//            }
+//
+//            @Override
+//            public byte[] getEncoded() {
+//                return Base64.getDecoder().decode(RsaConstant.pubkey);
+//            }
+//        }, new PrivateKey() {
+//            @Override
+//            public String getAlgorithm() {
+//                return "RSA";
+//            }
+//
+//            @Override
+//            public String getFormat() {
+//                return "PKCS#8";
+//            }
+//
+//            @Override
+//            public byte[] getEncoded() {
+//                return Base64.getDecoder().decode(RsaConstant.prikey);
+//            }
+//        });
+//
+        byte[] pubkey = Base64.getDecoder().decode(RsaConstant.pubkey);
+        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(pubkey);
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(x509EncodedKeySpec);
+
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE,publicKey);
+        byte[] cypher = cipher.doFinal("guest".getBytes(Charset.defaultCharset()));
+        String miwen = new String(Base64.getEncoder().encode(cypher), Charset.defaultCharset());
+
+        System.out.println("密文: " + miwen);
+
+        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.prikey));
+        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(pkcs8EncodedKeySpec);
+        byte[] bytes = Base64.getDecoder().decode("MaTKEh99H0QxDMHyE061guwSGdt9KplHA1BAbGWNSSDkXi1/MnKtT5e9h/cog1WI5lC6H9qQx5OfuU5+9TQ9cjpvlO+enE8jisDIt//xmX5/m4AI2JR01FhcI9sGgkBvIjGj5QorQSjFLhU4iihGYfMCgbB9YT07KeGUTnj45uA=");
+
+        System.out.println("私钥长度 ; "+privateKey.getEncoded().length);
+        Cipher cipher1 = Cipher.getInstance("RSA");
+        cipher1.init(Cipher.DECRYPT_MODE,privateKey);
+        byte[] minwen = cipher1.doFinal(bytes);
+        System.out.println("铭文: "+new String(minwen));
+    }
+
+    private RabbitmqConfiguration rabbitmqConfiguration;
+
+    private RsaDecoder rsaDecoder;
+
+    private MqConsumer mqConsumer;
+
+    private MqProducer mqProducer;
+
+    private CacheTest cacheTest;
+
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private JedisPool jedisPool;
+
+    private QueryForStudent queryForStudent;
+
+    private CrudForMessageQueue crudForMessageQueue;
+
+    private CrudForConsumer crudForConsumer;
+
+    private OperationForExchangeRouteKey operationForExchangeRouteKey;
+
+    public OperationForExchangeRouteKey getOperationForExchangeRouteKey() {
+        return operationForExchangeRouteKey;
+    }
 
     @Autowired
-    private rabbitmq_consumer rabbitmq_consumer;
+    public void setOperationForExchangeRouteKey(OperationForExchangeRouteKey operationForExchangeRouteKey) {
+        this.operationForExchangeRouteKey = operationForExchangeRouteKey;
+    }
+
+    public QueryForStudent getQueryForStudent() {
+        return queryForStudent;
+    }
+
+    @Autowired(required = false)
+    public void setQueryForStudent(QueryForStudent queryForStudent) {
+        this.queryForStudent = queryForStudent;
+    }
+
+    @Autowired
+    public void setRabbitmqConfiguration(RabbitmqConfiguration rabbitmqConfiguration) {
+        this.rabbitmqConfiguration = rabbitmqConfiguration;
+    }
+
+    @Autowired
+    public void setRsaDecoder(RsaDecoder rsaDecoder) {
+        this.rsaDecoder = rsaDecoder;
+    }
+
+    public RabbitmqConfiguration getRabbitmqConfiguration() {
+        return rabbitmqConfiguration;
+    }
+
+    public RsaDecoder getRsaDecoder() {
+        return rsaDecoder;
+    }
+
+    public MqConsumer getMqConsumer() {
+        return mqConsumer;
+    }
+
+    @Autowired
+    public void setMqConsumer(MqConsumer mqConsumer) {
+        this.mqConsumer = mqConsumer;
+    }
+
+    public MqProducer getMqProducer() {
+        return mqProducer;
+    }
+
+    @Autowired
+    public void setMqProducer(MqProducer mqProducer) {
+        this.mqProducer = mqProducer;
+    }
+
+    public CacheTest getCacheTest() {
+        return cacheTest;
+    }
+
+    @Autowired
+    public void setCacheTest(CacheTest cacheTest) {
+        this.cacheTest = cacheTest;
+    }
+
+    @Autowired
+    public void setRedisTemplate(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
+    public RedisTemplate<String, Object> getRedisTemplate() {
+        return redisTemplate;
+    }
+
+    @Autowired
+    public void setJedisPool(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
+    }
+
+    public JedisPool getJedisPool() {
+        return jedisPool;
+    }
+
+    public CrudForMessageQueue getCrudForMessageQueue() {
+        return crudForMessageQueue;
+    }
+
+    @Autowired(required = false)
+    public void setCrudForMessageQueue(CrudForMessageQueue crudForMessageQueue) {
+        this.crudForMessageQueue = crudForMessageQueue;
+    }
+
+    public CrudForConsumer getCrudForConsumer() {
+        return crudForConsumer;
+    }
+
+    @Autowired(required = false)
+    public void setCrudForConsumer(CrudForConsumer crudForConsumer) {
+        this.crudForConsumer = crudForConsumer;
+    }
 
     @Test
-    public void test_01() throws InterruptedException, IOException, TimeoutException {
-        for (int i = 0; i<1000; i++) {
-            rabbitmq_producer.produce("你好世界"+i);
-            System.out.println("生产者发送消息成功");
+    public void test3() {
+        rabbitmqConfiguration.getConnectionFactory();
+    }
+
+
+
+    @Test
+    public void test2() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, DecryptBeyondLengthException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+        InputStream inputStream = new FileInputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victory.mp3"));
+        byte[] buff = new byte[RsaDecoder.MAX_ENCRYPT_LENGTH];
+        byte[] de;
+        int len;
+        OutputStream outputStream = new FileOutputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryRsa.mp3"));
+
+        float current = 0;
+        System.out.println("加密中");
+        int total = inputStream.available();
+        while ((len = inputStream.read(buff)) != -1) {
+            de = rsaDecoder.enCodeFiles(buff);
+            outputStream.write(de,0,de.length);
+            current += len;
+            System.out.println(current/total*100+"%");
+        }
+
+        System.out.println("加密完成");
+        outputStream.close();
+        inputStream.close();
+        System.out.println("打包完成");
+    }
+
+    // 注意加密后的字节和源字节的长度不一样, rsa算法会有填充
+    @Test
+    public void test4() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, DecryptBeyondLengthException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+        InputStream inputStream = new FileInputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryRsa.mp3"));
+        byte[] buff = new byte[RsaDecoder.MAX_DECRYPT_LENGTH];
+        int len;
+        float current = 0;
+        OutputStream outputStream = new FileOutputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryOrigin.mp3"));
+        int total = inputStream.available();
+        byte[] de;
+        System.out.println("解密中");
+        while ((len = inputStream.read(buff)) != -1) {
+            de = rsaDecoder.deCodeFiles(buff);
+            outputStream.write(de,0,de.length);
+            current += len;
+            System.out.println(current/total*100+"%");
+            buff = new byte[RsaDecoder.MAX_DECRYPT_LENGTH];
+        }
+
+        System.out.println("解密完成");
+        outputStream.close();
+        inputStream.close();
+        System.out.println("打包完成");
+    }
+
+    // 验签
+    @Test
+    public void test5() throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+        Signature signature = Signature.getInstance("SHA1WithRSA");
+        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.prikey));
+        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(pkcs8EncodedKeySpec);
+
+        signature.initSign(privateKey);
+        signature.update("chenlei".getBytes(Charset.defaultCharset()));
+        byte[] passFlag = signature.sign();
+        System.out.println(new String(Base64.getEncoder().encode(passFlag), Charset.defaultCharset()));
+
+        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.pubkey));
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(x509EncodedKeySpec);
+
+        Signature signature1 = Signature.getInstance("SHA1WithRSA");
+        signature1.initVerify(publicKey);
+        signature1.update("chenlei1".getBytes(Charset.defaultCharset()));
+        System.out.println("验签是否通过: "+signature1.verify(passFlag));
+    }
+
+    @Test
+    public void test6() throws Exception {
+//        mqProducer.produce("发送消息");
+        mqConsumer.consume();
+    }
+
+    @Test
+    public void test7() {
+       Student student = new Student();
+       student.setStuId("101");
+       student.setSexType("male");
+       student.setPassPort("123456");
+       redisTemplate.opsForValue().set("hello", student);
+
+    }
+
+    // 测试mybatis xml配置文件实现crud
+    @Test
+    public void test8() throws IOException {
+        List<PaperInformation> paperInformations = queryForStudent.queryAllInformation();
+        System.out.println("写入图片");
+        int len;
+        ByteArrayInputStream inputStream = null;
+        byte[] buf = new byte[1024];
+        for (PaperInformation paperInformation : paperInformations) {
+            OutputStream outputStream = new FileOutputStream(new File("C:\\Users\\Lenovo\\Desktop\\photo\\" + UUID.randomUUID() + ".jpg"));
+            inputStream = new ByteArrayInputStream(paperInformation.getPaperResource());
+            while ((len = inputStream.read(buf)) != -1) {
+                outputStream.write(buf, 0, len);
+            }
+            System.out.println("success!");
+            inputStream.close();
+            outputStream.close();
         }
     }
 
     @Test
-    public void test_02() throws IOException, TimeoutException, InterruptedException {
-        for (int i =0; i<10; i++)
-            rabbitmq_consumer.consume();
+    public void test9() {
+        MessageTemp messageTemp = null;
+        for (int i = 0; i<200; i++) {
+            messageTemp = new MessageTemp();
+            messageTemp.setActiveTime(Formater.transferDateFormat());
+            messageTemp.setMessageContent(UUID.randomUUID().toString());
+            crudForMessageQueue.insertInformation(messageTemp);
+            System.out.println("提交完成");
+        }
+    }
+
+    @Test
+    public void test10() {
+        System.out.println(crudForMessageQueue.queryAllInformation());
+    }
+
+    @AfterClass
+    public static void pause() {
+        Scanner scanner = new Scanner(System.in);
+        String s = scanner.nextLine();
+    }
+
+    @Test
+    public void test11() throws Exception {
+        Channel channel = getRabbitmqConfiguration().getChannel();
+        channel.basicPublish(MqConstant.EXCHANGE_ONE, "MqConstant.routekey", true, null, "message".getBytes(Charset.defaultCharset()));
+    }
+
+    @Test
+    public void test12() {
+        int size = getRedisTemplate().opsForList().size(MqConstant.EXCHANGE_ONE).intValue();
+        boolean flag = false;
+        for (int i = 0; i < size; i++) {
+            System.out.println(getRedisTemplate().opsForList().index(MqConstant.EXCHANGE_ONE, i).equals(MqConstant.EXCHANGE_ROUTE_ABANDON));
+        }
+//        System.out.println(getRedisTemplate().opsForList().index(MqConstant.EXCHANGE_ONE, 10));
     }
 }

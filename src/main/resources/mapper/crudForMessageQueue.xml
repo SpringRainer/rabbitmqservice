@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.service.dao.CrudForMessageQueue">
+    <resultMap id="messageQueue" type="com.service.model.MessageTemp">
+        <id property="seq" column="seq" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="messageContent" column="messageContent" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="activeTime" column="activeTime" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+<!-- 插入数据到messagetemp表中-->
+    <insert id = "insertInformation" parameterType = "com.service.model.MessageTemp">
+        insert into messagetemp(messageContent, activeTime) values(#{messageContent}, #{activeTime});
+    </insert>
+
+<!-- 查询messagetemp中记录-->
+    <select id= "queryAllInformation" resultMap="messageQueue">
+        select seq, messageContent, activeTime from messagetemp;
+    </select>
+
+</mapper>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.service.dao.CrudForConsumer">
+    <resultMap id="consumer" type="com.service.model.AsyncTable">
+        <id property="seq" column="seq" javaType="java.lang.Integer" jdbcType="INTEGER"/>
+        <result property="asyncContent" column="asyncContent" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+<!-- 同步生产者消息-->
+    <insert id="insertInformation" parameterType="java.lang.String">
+           insert into asynctable(asyncContent) values (#{0});
+    </insert>
+
+</mapper>

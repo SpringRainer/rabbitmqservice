@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>webcam stream</title>
+    <script src="/static/js/rtmp-streamer.js"></script>
+</head>
+<body>
+mark标志
+<video id="videoPlayer" width="500" height="250"></video>
+<input type="button" onclick="start()" value="start"/>
+<input type="button" onclick="pushStream()" value="push"/>
+</body>
+<object>
+    <embed
+            id="rtmp-streamer"
+            src="/static/swf/RtmpStreamer.swf"
+            bgcolor="#000000"
+            quality="high"
+            width="750"
+            height="400"
+            allowScriptAccess="sameDomain"
+            type="application/x-shockwave-flash"></embed>
+</object>
+
+<script type="text/javascript">
+ function start () {
+    var videoElement = document.getElementById("videoPlayer");
+    navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+    }).then(function (stream) {
+        videoElement.srcObject = stream;
+        videoElement.play();
+    }).catch(function (error) {
+        alert(error.toString());
+    });
+}
+
+
+ // 推流服务器
+ function pushStream() {
+     var elem = document.getElementById('rtmp-streamer');
+     var rtmp = "rtmp://127.0.0.1:1935/livestream/"
+     let urls = rtmp.split('/');
+     let name = urls.pop();
+     let url = urls.join("/");
+     // flash 的推流方法publish
+     elem.publish(url, name);
+ }
+</script>
+</html>

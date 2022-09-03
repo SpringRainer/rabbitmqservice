@@ -1,5 +1,6 @@
 package com.example;
 
+import com.RabbitmqMain;
 import com.example.cachemanager.CacheTest;
 import com.example.cipher.RsaDecoder;
 import com.example.configuration.RabbitmqConfiguration;
@@ -7,8 +8,10 @@ import com.example.constant.MqConstant;
 import com.example.constant.RsaConstant;
 import com.example.consumer.MqConsumer;
 import com.example.exception.DecryptBeyondLengthException;
+import com.example.ffmpegUtil.FfmpegUtils;
 import com.example.producer.MqProducer;
 import com.example.redis.OperationForExchangeRouteKey;
+import com.example.utils.ActivitiUtils;
 import com.example.utils.Formater;
 import com.rabbitmq.client.Channel;
 import com.service.dao.CrudForConsumer;
@@ -17,7 +20,9 @@ import com.service.dao.QueryForStudent;
 import com.service.model.MessageTemp;
 import com.service.model.PaperInformation;
 import com.service.model.Student;
-import org.junit.AfterClass;
+import org.activiti.engine.ProcessEngine;
+import org.activiti.engine.repository.Deployment;
+import org.activiti.engine.repository.DeploymentQuery;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,84 +31,46 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 import redis.clients.jedis.JedisPool;
 
-import javax.crypto.*;
-import java.io.*;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.security.*;
+
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 
 /**
- * @author 陈磊
+ * @author chenlei
  * @version 2.0
  * @date 2022/4/17 17:50
  */
-@SpringBootTest(classes = RabbitmqMain.class)
-@RunWith(SpringRunner.class)
+//@SpringBootTest(classes = RabbitmqMain.class)
+//@RunWith(SpringRunner.class)
 public class rabbit_test {
-    @Test
-    public void test() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
 
-//        KeyPair keyPair = new KeyPair(new PublicKey() {
-//            @Override
-//            public String getAlgorithm() {
-//                return "RSA";
-//            }
-//
-//            @Override
-//            public String getFormat() {
-//                return "X.509";
-//            }
-//
-//            @Override
-//            public byte[] getEncoded() {
-//                return Base64.getDecoder().decode(RsaConstant.pubkey);
-//            }
-//        }, new PrivateKey() {
-//            @Override
-//            public String getAlgorithm() {
-//                return "RSA";
-//            }
-//
-//            @Override
-//            public String getFormat() {
-//                return "PKCS#8";
-//            }
-//
-//            @Override
-//            public byte[] getEncoded() {
-//                return Base64.getDecoder().decode(RsaConstant.prikey);
-//            }
-//        });
-//
-        byte[] pubkey = Base64.getDecoder().decode(RsaConstant.pubkey);
-        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(pubkey);
-        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(x509EncodedKeySpec);
-
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.ENCRYPT_MODE,publicKey);
-        byte[] cypher = cipher.doFinal("guest".getBytes(Charset.defaultCharset()));
-        String miwen = new String(Base64.getEncoder().encode(cypher), Charset.defaultCharset());
-
-        System.out.println("密文: " + miwen);
-
-        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.prikey));
-        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(pkcs8EncodedKeySpec);
-        byte[] bytes = Base64.getDecoder().decode("MaTKEh99H0QxDMHyE061guwSGdt9KplHA1BAbGWNSSDkXi1/MnKtT5e9h/cog1WI5lC6H9qQx5OfuU5+9TQ9cjpvlO+enE8jisDIt//xmX5/m4AI2JR01FhcI9sGgkBvIjGj5QorQSjFLhU4iihGYfMCgbB9YT07KeGUTnj45uA=");
-
-        System.out.println("私钥长度 ; "+privateKey.getEncoded().length);
-        Cipher cipher1 = Cipher.getInstance("RSA");
-        cipher1.init(Cipher.DECRYPT_MODE,privateKey);
-        byte[] minwen = cipher1.doFinal(bytes);
-        System.out.println("铭文: "+new String(minwen));
-    }
 
     private RabbitmqConfiguration rabbitmqConfiguration;
 
@@ -226,6 +193,31 @@ public class rabbit_test {
         this.crudForConsumer = crudForConsumer;
     }
 
+
+    @Test
+    public void test() throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException {
+        byte[] pubkey = Base64.getDecoder().decode(RsaConstant.pubkey);
+        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(pubkey);
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(x509EncodedKeySpec);
+
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE,publicKey);
+        byte[] cypher = cipher.doFinal("guest".getBytes(Charset.defaultCharset()));
+        String miwen = new String(Base64.getEncoder().encode(cypher), Charset.defaultCharset());
+
+        System.out.println("密文: " + miwen);
+
+        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.prikey));
+        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(pkcs8EncodedKeySpec);
+        byte[] bytes = Base64.getDecoder().decode("MaTKEh99H0QxDMHyE061guwSGdt9KplHA1BAbGWNSSDkXi1/MnKtT5e9h/cog1WI5lC6H9qQx5OfuU5+9TQ9cjpvlO+enE8jisDIt//xmX5/m4AI2JR01FhcI9sGgkBvIjGj5QorQSjFLhU4iihGYfMCgbB9YT07KeGUTnj45uA=");
+
+        System.out.println("private key length ; "+privateKey.getEncoded().length);
+        Cipher cipher1 = Cipher.getInstance("RSA");
+        cipher1.init(Cipher.DECRYPT_MODE,privateKey);
+        byte[] minwen = cipher1.doFinal(bytes);
+        System.out.println("明文: "+new String(minwen));
+    }
+
     @Test
     public void test3() {
         rabbitmqConfiguration.getConnectionFactory();
@@ -242,7 +234,7 @@ public class rabbit_test {
         OutputStream outputStream = new FileOutputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryRsa.mp3"));
 
         float current = 0;
-        System.out.println("加密中");
+        System.out.println("???");
         int total = inputStream.available();
         while ((len = inputStream.read(buff)) != -1) {
             de = rsaDecoder.enCodeFiles(buff);
@@ -251,14 +243,15 @@ public class rabbit_test {
             System.out.println(current/total*100+"%");
         }
 
-        System.out.println("加密完成");
+        System.out.println("????");
         outputStream.close();
         inputStream.close();
-        System.out.println("打包完成");
+        System.out.println("????");
     }
 
-    // 注意加密后的字节和源字节的长度不一样, rsa算法会有填充
+
     @Test
+    // 解密
     public void test4() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, DecryptBeyondLengthException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
         InputStream inputStream = new FileInputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryRsa.mp3"));
         byte[] buff = new byte[RsaDecoder.MAX_DECRYPT_LENGTH];
@@ -267,7 +260,6 @@ public class rabbit_test {
         OutputStream outputStream = new FileOutputStream(new File("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\victoryOrigin.mp3"));
         int total = inputStream.available();
         byte[] de;
-        System.out.println("解密中");
         while ((len = inputStream.read(buff)) != -1) {
             de = rsaDecoder.deCodeFiles(buff);
             outputStream.write(de,0,de.length);
@@ -275,16 +267,13 @@ public class rabbit_test {
             System.out.println(current/total*100+"%");
             buff = new byte[RsaDecoder.MAX_DECRYPT_LENGTH];
         }
-
-        System.out.println("解密完成");
         outputStream.close();
         inputStream.close();
-        System.out.println("打包完成");
     }
 
-    // 验签
+    // ??
     @Test
-    public void test5() throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
+    public void test5() throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException, SignatureException {
         Signature signature = Signature.getInstance("SHA1WithRSA");
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(RsaConstant.prikey));
         PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(pkcs8EncodedKeySpec);
@@ -300,12 +289,11 @@ public class rabbit_test {
         Signature signature1 = Signature.getInstance("SHA1WithRSA");
         signature1.initVerify(publicKey);
         signature1.update("chenlei1".getBytes(Charset.defaultCharset()));
-        System.out.println("验签是否通过: "+signature1.verify(passFlag));
+        System.out.println("校验是否通过: "+signature1.verify(passFlag));
     }
 
     @Test
     public void test6() throws Exception {
-//        mqProducer.produce("发送消息");
         mqConsumer.consume();
     }
 
@@ -319,11 +307,10 @@ public class rabbit_test {
 
     }
 
-    // 测试mybatis xml配置文件实现crud
+    // ??mybatis xml??????crud
     @Test
     public void test8() throws IOException {
         List<PaperInformation> paperInformations = queryForStudent.queryAllInformation();
-        System.out.println("写入图片");
         int len;
         ByteArrayInputStream inputStream = null;
         byte[] buf = new byte[1024];
@@ -347,7 +334,6 @@ public class rabbit_test {
             messageTemp.setActiveTime(Formater.transferDateFormat());
             messageTemp.setMessageContent(UUID.randomUUID().toString());
             crudForMessageQueue.insertInformation(messageTemp);
-            System.out.println("提交完成");
         }
     }
 
@@ -356,11 +342,11 @@ public class rabbit_test {
         System.out.println(crudForMessageQueue.queryAllInformation());
     }
 
-    @AfterClass
-    public static void pause() {
-        Scanner scanner = new Scanner(System.in);
-        String s = scanner.nextLine();
-    }
+//    @AfterClass
+//    public static void pause() {
+//        Scanner scanner = new Scanner(System.in);
+//        String s = scanner.nextLine();
+//    }
 
     @Test
     public void test11() throws Exception {
@@ -376,5 +362,25 @@ public class rabbit_test {
             System.out.println(getRedisTemplate().opsForList().index(MqConstant.EXCHANGE_ONE, i).equals(MqConstant.EXCHANGE_ROUTE_ABANDON));
         }
 //        System.out.println(getRedisTemplate().opsForList().index(MqConstant.EXCHANGE_ONE, 10));
+    }
+
+    @Test
+    public void test13() throws IOException {
+        System.out.println(FfmpegUtils.transform("C:\\Users\\Lenovo\\Desktop\\downloadVideo\\1.mp4","C:\\Users\\Lenovo\\Desktop\\downloadVideo\\dest\\test.h264","h264"));
+    }
+
+    private ActivitiUtils activitiUtils;
+
+    @Test
+    public void test14() {
+//        ProcessEngine engine = ActivitiUtils.getProcessEngine();
+//        System.out.println("get engine");
+//
+//        Map<String, Object> map = new HashMap<>();
+//        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+//        String date = simpleDateFormat.format(new Date());
+//
+//        ActivitiUtils.startProcessInstance(map, "orderOfBuyGoods");
+        ActivitiUtils.executeNode("orderOfBuyGoods");
     }
 }

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%">
+<head>
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <meta charset="utf-8">
+    <meta name="description" content="Opencast Media Player">
+    <meta name="author" content="Opencast">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>RTMP播放</title>
+
+     <link href="/static/videojs/video-js.min.css" rel="stylesheet">
+     <script src="/static/videojs/video.min.js"></script>
+
+     <script src="/static/videojs/videojs-flash.js"></script>
+     <script>
+         videojs.options.flash.swf = "/static/video_js_swf_5.4.2/dist/video-js.swf";//全局方式覆盖 SWF文件在Flash技术位置的位置
+     </script>
+
+     <style type="text/css">
+         body {height: 100%;margin: 0;padding: 0;}
+         .videoArea{width: 49.8%;height: 49.8%; float: left;border: 1px solid grey; }
+     </style>
+
+     </head>
+ <body>
+
+     <div id="video_1_area" class="videoArea">
+             <video id="example_video_1" class="video-js vjs-default-skin vjs-big-play-centered" controls style="width: 100%;height: 100%;" >
+                 <source src="rtmp://127.0.0.1:1935/livestream/" type="rtmp/flv">
+             </video>
+         </div>
+ </body>
+      <script>
+              var options = {
+                  poster: 'Logo.png',            //未播放时 的封面
+                  techOrder: ["flash", "html5"],    //定义Video.js技术首选的顺序。这意味着Html5首选技术
+                  autoplay: false,                    //播放器准备好之后，是否自动播放 【默认false】
+                  controls: true,                 //是否显示控制栏
+                  preload: 'auto',                //预加载
+                  muted: true,                    //静音
+                  language: "zh-CN",                //初始化语言
+                  //fluid: true,
+                 }
+
+             var player = videojs('example_video_1', options, function(){
+                         videojs.log('Your player is ready!');
+                 setTimeout(function() {player.play();}
+                 , 2000);
+             });
+         </script>
+ </html>

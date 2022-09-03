@@ -1,1 +1,0 @@
-start C:\Users\Lenovo\Desktop\devTools\rabbitmq-server.bat.lnk

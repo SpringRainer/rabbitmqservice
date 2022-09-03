@@ -7,12 +7,14 @@ import com.example.redis.OperationForExchangeRouteKey;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
@@ -52,7 +54,8 @@ public class InitializeQueueAndExchange {
         return redisTemplate;
     }
 
-    @Autowired
+
+    @Resource(name = "rabbitmqRedisTemplate")
     public void setRedisTemplate(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }

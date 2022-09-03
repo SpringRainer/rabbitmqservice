@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
+  <process id="orderOfBuyGoods" name="orderOfBuyGoods" isExecutable="true">
+    <startEvent id="start" name="start">
+      <documentation>start</documentation>
+    </startEvent>
+    <documentation>start</documentation>
+    <userTask id="auto1" name="firstCheck" activiti:assignee="&quot;zhangsan&quot;,&quot;lisi&quot;">
+      <documentation>审核</documentation>
+    </userTask>
+    <sequenceFlow id="line0" sourceRef="start" targetRef="auto1"/>
+    <userTask id="auto2" name="secondCheck" activiti:assignee="&quot;王五&quot;">
+      <documentation>第二道审核</documentation>
+    </userTask>
+    <sequenceFlow id="line1" sourceRef="auto1" targetRef="auto2"/>
+    <userTask id="auto3" name="thirdCheck" activiti:assignee="&quot;李六&quot;">
+      <documentation>第三道审核</documentation>
+    </userTask>
+    <sequenceFlow id="line2" sourceRef="auto2" targetRef="auto3"/>
+    <endEvent id="end"/>
+    <sequenceFlow id="line3" sourceRef="auto3" targetRef="end"/>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_orderOfBuyGoods">
+    <bpmndi:BPMNPlane bpmnElement="orderOfBuyGoods" id="BPMNPlane_orderOfBuyGoods">
+      <bpmndi:BPMNShape id="shape-2c71fd9c-a81c-4b6b-a41a-56c91dc31cc0" bpmnElement="start">
+        <omgdc:Bounds x="-394.8078" y="-180.05032" width="30.0" height="30.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape-836c602c-3a5e-4e30-8bc9-61f23fa60172" bpmnElement="auto1">
+        <omgdc:Bounds x="-226.47946" y="-217.2212" width="219.90787" height="104.341774"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-7ed75237-3733-4601-a8d9-4347f4044b91" bpmnElement="line0">
+        <omgdi:waypoint x="-364.8078" y="-165.05032"/>
+        <omgdi:waypoint x="-226.47946" y="-165.05032"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="shape-cace6353-836a-44db-8392-faa9596e76ab" bpmnElement="auto2">
+        <omgdc:Bounds x="174.25475" y="-203.43353" width="228.16724" height="76.7664"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-cadc6012-c8b3-4082-9316-aa9d4bedd51a" bpmnElement="line1">
+        <omgdi:waypoint x="-6.571594" y="-165.05032"/>
+        <omgdi:waypoint x="174.25475" y="-165.05032"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="shape-687226c8-80b6-46cd-9862-90d162392843" bpmnElement="auto3">
+        <omgdc:Bounds x="173.24394" y="-29.751205" width="230.18886" height="108.26001"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-f1e34736-92c5-4d1a-b50d-edf00112c7f0" bpmnElement="line2">
+        <omgdi:waypoint x="288.33835" y="-126.66713"/>
+        <omgdi:waypoint x="288.33835" y="-29.751205"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="shape-0517d173-fe13-43bf-b57e-238f1137cefd" bpmnElement="end">
+        <omgdc:Bounds x="-11.679596" y="45.388012" width="30.0" height="30.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge-9cfa2ed0-52e9-41b4-a6f1-1622200e726a" bpmnElement="line3">
+        <omgdi:waypoint x="173.24396" y="51.4438"/>
+        <omgdi:waypoint x="18.320404" y="52.888012"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/contex
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+    <!-- 默认id对应的值 为processEngineConfiguration -->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:config/application.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- 配置activiti -->
+    <bean id="processEngineConfiguration" class="org.activiti.engine.impl.cfg.StandaloneProcessEngineConfiguration">
+        <property name="jdbcUrl" value="jdbc:mysql://127.0.0.1:3306/mysql1?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=UTC"/>
+        <property name="jdbcDriver" value="com.mysql.jdbc.Driver"/>
+        <property name="jdbcUsername" value="root"/>
+        <property name="jdbcPassword" value="123456"/>
+        <property name="databaseSchemaUpdate" value="true"/>
+    </bean>
+</beans>

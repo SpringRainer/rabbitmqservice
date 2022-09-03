@@ -1,0 +1,31 @@
+spring:
+  # Spring Boot Admin 监控服务器端地址
+  boot:
+    admin:
+      client:
+        url: http://localhost:9003
+        # 如果设置了账号密码就需要
+        username: admin
+        password: 123456
+
+
+# 开启监控所有项
+management:
+  endpoints:
+    #公开所有端点web接口
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      #显示db、redis、rabbti连接情况等
+      show-details: always
+    # 具体的日志路径
+    logfile:
+      external-file: xxx
+
+#添加描述
+info:
+  describe: SpringBootAdmin，Test Client Service!
+  author: shawn
+  version: 1.0.0

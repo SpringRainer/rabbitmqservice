@@ -35,7 +35,11 @@
       <option name="IGNORE_JAVADOC_PERIOD" value="true" />
       <option name="IGNORE_DUPLICATED_THROWS" value="false" />
       <option name="IGNORE_POINT_TO_ITSELF" value="false" />
+<<<<<<< HEAD
       <option name="myAdditionalJavadocTags" value="date,return" />
+=======
+      <option name="myAdditionalJavadocTags" value="date" />
+>>>>>>> 4acc65a562a1aab4e954a9d027fd2918a7f403f7
     </inspection_tool>
   </profile>
 </component>
